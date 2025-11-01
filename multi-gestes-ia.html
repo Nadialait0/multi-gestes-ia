@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reconnaissance Webcam — Mains + Visage amélioré</title>
+<style>
+  :root{
+    --bg1: linear-gradient(180deg,#071024,#03121a);
+    --bg2: linear-gradient(180deg,#063b2e,#022617);
+    --panel: rgba(255,255,255,0.03);
+    --accent: #60c8a6;
+    --text: #e6eef8;
+  }
+  *{box-sizing:border-box;font-family:Inter,system-ui,Arial,sans-serif}
+  body{margin:0;min-height:100vh;background:var(--bg1);color:var(--text);
+    display:flex;align-items:center;justify-content:center;padding:18px;
+    transition:background 400ms ease}
+  .card{width:100%;max-width:1100px;background:rgba(0,0,0,0.18);
+    border-radius:12px;padding:14px;box-shadow:0 12px 36px rgba(0,0,0,0.6)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  h1{font-size:1.05rem;margin:0}
+  main{display:grid;grid-template-columns:1fr 320px;gap:14px}
+  .vis{position:relative;background:linear-gradient(180deg,#021026,#041428);
+    border-radius:10px;overflow:hidden;display:flex;align-items:center;
+    justify-content:center;min-height:420px}
+  video, canvas{display:block;max-width:100%}
+  canvas{position:absolute;left:0;top:0;pointer-events:none}
+  .emoji{
+    position:absolute;right:18px;top:18px;font-size:48px;opacity:0;
+    transform:translateY(-6px);transition:all 300ms ease;
+    text-shadow:0 6px 18px rgba(0,0,0,0.5);
+  }
+  .panel{padding:12px;background:var(--panel);border-radius:10px}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  label{font-size:0.9rem;color:var(--text)}
+  button{background:var(--accent);border:none;padding:8px 12px;
+    border-radius:8px;color:#08241a;cursor:pointer}
+  input[type=range]{width:100%}
+  .muted{font-size:0.85rem;color:rgba(230,238,248,0.6)}
+  footer{margin-top:8px;font-size:0.85rem;color:rgba(230,238,248,0.6)}
+  @media(max-width:960px){ main{grid-template-columns:1fr} .vis{min-height:320px} }
+</style>
+</head>
+<body>
+  <div class="card">
+    <header>
+      <h1>Reconnaissance Webcam — Mains + Visage</h1>
+      <div class="muted">Autorise la webcam, puis clique <strong>Start</strong></div>
+    </header>
+
+    <main>
+      <section class="vis" id="viewer">
+        <video id="video" playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="emoji" id="emoji">👋</div>
+      </section>
+
+      <aside class="panel">
+        <div class="row"><button id="startBtn">▶️ Start</button><button id="stopBtn" disabled>⏹ Stop</button></div>
+
+        <div style="margin-top:8px">
+          <label>Sensibilité (seuil de détection des gestes)</label>
+          <input id="sensitivity" type="range" min="0.05" max="0.45" step="0.01" value="0.18">
+        </div>
+
+        <div style="margin-top:10px">
+          <label><input type="checkbox" id="enableSound"> Son quand geste reconnu</label>
+        </div>
+
+        <div style="margin-top:10px" class="muted">
+          Détecte : 👋 Main levée, 👍 Pouce levé, ✌️ Victoire, 👁️ Yeux fermés, 👄 Bouche ouverte.
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <audio id="ding" src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg" preload="auto"></audio>
+
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <script>
+  (function(){
+    const video=document.getElementById('video');
+    const canvas=document.getElementById('overlay');
+    const ctx=canvas.getContext('2d');
+    const startBtn=document.getElementById('startBtn');
+    const stopBtn=document.getElementById('stopBtn');
+    const sensitivityInput=document.getElementById('sensitivity');
+    const emoji=document.getElementById('emoji');
+    const ding=document.getElementById('ding');
+    const enableSound=document.getElementById('enableSound');
+
+    let camera=null, hands=null, faceMesh=null;
+    let lastDetected=null, lastDetectionTime=0;
+    const detectionCooldown=600;
+
+    const CONNECTIONS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+
+    function resizeCanvasToVideo(){
+      canvas.width=video.videoWidth||640;
+      canvas.height=video.videoHeight||480;
+    }
+
+    // Efface le canvas à chaque frame ✅
+    function clearCanvas(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+
+    // HALO doux autour des mains
+    function drawHandHalo(lm){
+      ctx.save();
+      ctx.translate(canvas.width,0); ctx.scale(-1,1);
+      const x=lm.map(p=>p.x*canvas.width);
+      const y=lm.map(p=>p.y*canvas.height);
+      const cx=x.reduce((a,b)=>a+b)/x.length;
+      const cy=y.reduce((a,b)=>a+b)/y.length;
+      ctx.beginPath();
+      const gradient=ctx.createRadialGradient(cx,cy,10,cx,cy,80);
+      gradient.addColorStop(0,'rgba(0,255,200,0.3)');
+      gradient.addColorStop(1,'rgba(0,255,200,0)');
+      ctx.fillStyle=gradient;
+      ctx.arc(cx,cy,80,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawHands(results){
+      if(!results.multiHandLandmarks)return;
+      for(const lm of results.multiHandLandmarks){
+        drawHandHalo(lm); // halo ✨
+        ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1);
+        ctx.strokeStyle='rgba(0,255,200,0.7)';
+        ctx.lineWidth=2;
+        for(const [a,b] of CONNECTIONS){
+          const p1=lm[a],p2=lm[b];
+          ctx.beginPath();
+          ctx.moveTo(p1.x*canvas.width,p1.y*canvas.height);
+          ctx.lineTo(p2.x*canvas.width,p2.y*canvas.height);
+          ctx.stroke();
+        }
+        ctx.fillStyle='rgba(255,0,255,0.6)';
+        for(const p of lm){
+          ctx.beginPath();
+          ctx.arc(p.x*canvas.width,p.y*canvas.height,3,0,Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function detectGesture(lm,sens){
+      const wrist=lm[0],thumb=lm[4],index=lm[8],middle=lm[12],ring=lm[16],pinky=lm[20];
+      const idxUp=wrist.y-index.y>sens*0.8;
+      const midUp=wrist.y-middle.y>sens*0.8;
+      const ringUp=wrist.y-ring.y>sens*0.6;
+      const pinkyUp=wrist.y-pinky.y>sens*0.6;
+      const thumbUp=wrist.y-thumb.y>sens*0.7;
+      const thumbIndexDist=Math.hypot(thumb.x-index.x,thumb.y-index.y);
+      const thumbOpen=thumbIndexDist>0.15;
+      if(thumbUp&&!idxUp&&!midUp&&!ringUp&&!pinkyUp&&thumbOpen)return'👍';
+      if(idxUp&&midUp&&!ringUp&&!pinkyUp)return'✌️';
+      if(idxUp||midUp||ringUp||pinkyUp)return'👋';
+      return null;
+    }
+
+    function detectFaceStates(lm){
+      if(!lm||lm.length<468)return null;
+      const leftEyeTop=lm[159],leftEyeBottom=lm[145];
+      const rightEyeTop=lm[386],rightEyeBottom=lm[374];
+      const upperLip=lm[13],lowerLip=lm[14];
+      const eyesClosed=(Math.abs(leftEyeTop.y-leftEyeBottom.y)<0.015&&Math.abs(rightEyeTop.y-rightEyeBottom.y)<0.015);
+      const mouthOpen=Math.abs(upperLip.y-lowerLip.y)>0.055;
+      if(eyesClosed)return'😴';
+      if(mouthOpen)return'😮';
+      return null;
+    }
+
+    function react(gesture){
+      const now=Date.now();
+      if(gesture&&lastDetected===gesture&&(now-lastDetectionTime)<detectionCooldown)return;
+      lastDetectionTime=now;lastDetected=gesture;
+      if(!gesture){emoji.style.opacity=0;document.body.style.background='var(--bg1)';return;}
+      let bg='var(--bg1)';
+      if(gesture==='👋')bg='var(--bg2)';
+      else if(gesture==='👍')bg='linear-gradient(180deg,#003f1f,#013a18)';
+      else if(gesture==='✌️')bg='linear-gradient(180deg,#3a0060,#280033)';
+      else if(gesture==='😴')bg='linear-gradient(180deg,#000814,#001d3d)';
+      else if(gesture==='😮')bg='linear-gradient(180deg,#330000,#660000)';
+      document.body.style.background=bg;
+      emoji.textContent=gesture;emoji.style.opacity=1;
+      if(enableSound.checked){ding.currentTime=0;ding.play().catch(()=>{});}
+      setTimeout(()=>{emoji.style.opacity=0;document.body.style.background='var(--bg1)';},900);
+    }
+
+    function onHandsResults(results){
+      clearCanvas();
+      drawHands(results);
+      if(results.multiHandLandmarks?.length){
+        for(const lm of results.multiHandLandmarks){
+          const g=detectGesture(lm,parseFloat(sensitivityInput.value));
+          if(g){react(g);return;}
+        }
+      }
+    }
+
+    function onFaceResults(results){
+      if(!results||!results.multiFaceLandmarks?.length)return;
+      const g=detectFaceStates(results.multiFaceLandmarks[0]);
+      if(g)react(g);
+    }
+
+    function setupHands(){
+      hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+      hands.setOptions({selfieMode:true,maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.6,minTrackingConfidence:0.6});
+      hands.onResults(onHandsResults);
+    }
+
+    function setupFace(){
+      faceMesh=new FaceMesh({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`});
+      faceMesh.setOptions({selfieMode:true,maxNumFaces:1,refineLandmarks:true,minDetectionConfidence:0.6,minTrackingConfidence:0.6});
+      faceMesh.onResults(onFaceResults);
+    }
+
+    async function startCamera(){
+      resizeCanvasToVideo();
+      camera=new Camera(video,{onFrame:async()=>{
+        if(hands)await hands.send({image:video});
+        if(faceMesh)await faceMesh.send({image:video});
+      },width:640,height:480});
+      camera.start();
+    }
+
+    startBtn.addEventListener('click',async()=>{
+      startBtn.disabled=true;stopBtn.disabled=false;
+      if(!hands)setupHands();if(!faceMesh)setupFace();
+      await startCamera();
+    });
+
+    stopBtn.addEventListener('click',()=>{
+      startBtn.disabled=false;stopBtn.disabled=true;
+      if(camera&&camera.stop)camera.stop();
+      if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null;}
+      clearCanvas();emoji.style.opacity=0;
+    });
+
+    window.addEventListener('resize',resizeCanvasToVideo);
+    console.log('✅ Multi-gestes + visage amélioré prêt (v3)');
+  })();
+  </script>
+</body>
+</html>
