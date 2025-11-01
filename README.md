@@ -1,7 +1,7 @@
 # 🤖 AI Webcam Recognition — Hands + Face Enhanced
 
-A real-time **AI-powered web application** that detects **hand gestures** and **facial expressions** through your webcam.  
-Built using **Google MediaPipe**, it showcases how modern browser-based AI can interpret human movement and emotion — directly on the client side.
+A real-time **AI-powered web application** that detects **hand gestures** and **facial expressions** directly from your webcam.  
+Built using **Google MediaPipe**, it showcases how modern browser-based AI can interpret human movement and emotion — entirely **on the client side**.
 
 ---
 
@@ -9,40 +9,41 @@ Built using **Google MediaPipe**, it showcases how modern browser-based AI can i
 
 - 🖐️ Detects multiple **hand gestures** (👋 wave, 👍 thumbs up, ✌️ victory)  
 - 😴 Recognizes **facial states** (eyes closed, mouth open)  
-- 🎨 Reacts with dynamic background color and emoji  
-- 🔊 Optional sound feedback for detected gestures  
+- 🎨 Reacts with **dynamic background color** and emoji feedback  
+- 🔊 Optional **sound feedback** for detected gestures  
 - 🧠 All AI processing is **local** — no data is sent to any server  
 
 ---
 
 ## 🧠 Powered by Artificial Intelligence
 
-This project uses **MediaPipe’s pre-trained machine learning models** for human motion and face analysis.
+This project uses **MediaPipe’s pre-trained ML models** for **hand** and **face** analysis.
 
-### 🤲 Hand Recognition (MediaPipe Hands)
+### ✋ Hand Recognition (MediaPipe Hands)
 - Detects **21 landmarks per hand** in real time  
-- Custom gesture recognition logic based on landmark distances  
-- Adjustable **sensitivity slider** for fine-tuning detection  
+- Includes **custom gesture logic** based on landmark distances  
+- Adjustable **sensitivity slider** for detection fine-tuning  
 
-### 😊 Face Recognition (MediaPipe FaceMesh)
-- Analyzes **468 facial landmarks**
-- Detects small changes in eyelid and lip distance to identify:
-  - 😴 Closed eyes
+### 🙂 Face Recognition (MediaPipe FaceMesh)
+- Analyzes **468 facial landmarks**  
+- Detects micro-movements to identify:
+  - 😴 Closed eyes  
   - 😮 Open mouth  
 
-### ⚡ Real-Time AI Flow
+---
+
+## ⚡ Real-Time AI Flow
+
 ```plaintext
 Webcam → CameraUtils → MediaPipe Models (Hands + FaceMesh)
       ↓
 Landmarks → AI Analysis → Gesture/Expression Recognition → UI Reaction
 💻 User Interface
-The web app provides a simple and interactive layout:
-
 Section	Description
 Viewer	Live webcam feed + AI landmark overlay
 Control Panel	Start/Stop buttons, sensitivity control, sound toggle
 
-✨ Visual Feedbacks
+✨ Visual Feedback
 Gesture	Meaning	UI Effect
 👋	Wave	Soft green gradient
 👍	Thumbs up	Deep green gradient
@@ -53,7 +54,7 @@ Gesture	Meaning	UI Effect
 ⚙️ Parameters
 Setting	Element	Function
 Sensitivity	#sensitivity	Adjusts AI detection tolerance
-Sound	#enableSound	Plays a sound when gesture detected
+Sound	#enableSound	Plays sound when gesture detected
 Start / Stop	#startBtn, #stopBtn	Controls camera and AI models
 
 🧱 Code Structure
@@ -61,44 +62,37 @@ php-template
 Copier le code
 ai-webcam-recognition.html
 │
-├── <style>      → Dark, responsive UI with gradient themes
-├── <video>      → Webcam feed
-├── <canvas>     → AI overlay for landmarks
-├── <script>     → Core AI logic
-│    ├── setupHands() / setupFace() → Initialize AI models
-│    ├── detectGesture() / detectFaceStates() → Interpret AI output
-│    ├── react() → Visual + audio reactions
-│    └── startCamera() → Real-time processing loop
+├── <style>      → Dark, responsive UI with gradient themes  
+├── <video>      → Webcam feed  
+├── <canvas>     → AI overlay for landmarks  
+├── <script>     → Core AI logic  
+│    ├── setupHands() / setupFace() → Initialize AI models  
+│    ├── detectGesture() / detectFaceStates() → Interpret AI output  
+│    ├── react() → Visual + audio reactions  
+│    └── startCamera() → Real-time processing loop  
 🔒 Privacy & Data Ethics
-🧩 100% local inference — all video processing stays on your device.
+🧩 100% local inference — all processing stays on your device
 
-🚫 No images, videos, or biometric data are uploaded or stored.
+🚫 No data collected or stored (no images, videos, or biometric info)
 
-💡 Runs entirely in your browser, even offline once models are loaded.
+💡 Works entirely in your browser — even offline after model loading
 
 🧭 Future Improvements
 ✋ Add more gesture types (🤙, 🤟, ✋)
 
-🧩 Integrate TensorFlow.js for advanced custom models
+🧩 Integrate TensorFlow.js for custom AI models
 
-🧪 Train a personalized gesture recognition model
+🧪 Train personalized gesture recognition models
 
-⚙️ Implement adaptive sensitivity or calibration modes
+⚙️ Implement adaptive sensitivity calibration
 
 👩‍💻 Author & Credits
 Developer: Nadia
-AI Framework: MediaPipe by Google Research
-Version: 3.0 — Multi-Gesture + Face Enhanced
-License: MIT
+
 
 🖼️ Preview
-"AI meets human interaction — all in your browser."
+“AI meets human interaction — all in your browser.”
 
-
-🪄 How to Run
-Clone or download the repository
-
-Open ai-webcam-recognition.html in your browser
 
 Allow webcam access and click Start
 
