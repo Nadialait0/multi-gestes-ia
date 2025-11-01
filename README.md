@@ -1,11 +1,11 @@
-# 🤖 AI Webcam Recognition — Hands + Face Enhanced
+#  AI Webcam Recognition — Hands + Face Enhanced
 
 Real-time **AI web app** that detects **hand gestures** and **facial expressions** using your webcam.  
 Built with **MediaPipe**, all processing runs locally in your browser — no data sent to servers.
 
 ---
 
-## 🌟 Features
+##  Features
 - 🖐️ Detects gestures: 👋 👍 ✌️  
 - 🙂 Recognizes facial states: eyes closed, mouth open  
 - 🎨 Dynamic UI reactions (color + emoji)  
@@ -14,7 +14,7 @@ Built with **MediaPipe**, all processing runs locally in your browser — no dat
 
 ---
 
-## ⚙️ Tech
+##  Tech
 - **MediaPipe Hands** – 21 hand landmarks  
 - **MediaPipe FaceMesh** – 468 facial landmarks  
 - **HTML, CSS, JavaScript**  
@@ -26,7 +26,6 @@ Built with **MediaPipe**, all processing runs locally in your browser — no dat
 2. Open `ai-webcam-recognition.html` in your browser  
 3. Allow webcam access and click **Start**  
 
----
 
-**Developer:** Nadia • 
-⭐ *AI meets human interaction — all in your browser.*
+---
+ **AI meets human interaction — all in your browser.**
