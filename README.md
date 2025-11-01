@@ -21,7 +21,7 @@ Built with **MediaPipe**, all processing runs locally in your browser — no dat
 
 ---
 
-## 🚀 Run Locally
+## Run Locally
 1. Clone or download this repo  
 2. Open `ai-webcam-recognition.html` in your browser  
 3. Allow webcam access and click **Start**  
