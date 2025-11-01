@@ -34,7 +34,7 @@ This project uses **MediaPipe’s pre-trained ML models** for **hand** and **fac
 
 ## ⚡ Real-Time AI Flow
 
-```plaintext
+
 Webcam → CameraUtils → MediaPipe Models (Hands + FaceMesh)
       ↓
 Landmarks → AI Analysis → Gesture/Expression Recognition → UI Reaction
